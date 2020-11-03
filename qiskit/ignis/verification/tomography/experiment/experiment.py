@@ -21,14 +21,14 @@ class TomographyGenerator(Generator):
     def __init__(self,
                  name: str,
                  circuit: QuantumCircuit,
-                 meas_qubits: Union[int, List[int]],
+                 meas_qubits: Union[int, List[int]] = None,
                  prep_qubits: Union[int, List[int]] = None,
                  meas_clbits: Union[int, List[int]] = None
                  ):
         super().__init__(name, circuit.num_qubits)
-        self._meas_qubits = meas_qubits
-        self._prep_qubits = prep_qubits if prep_qubits is not None else meas_qubits
-        self._meas_clbits = meas_clbits if meas_clbits is not None else meas_qubits
+        self._meas_qubits = meas_qubits if meas_qubits else list(range(circuit.num_qubits))
+        self._prep_qubits = prep_qubits if prep_qubits is not None else self._meas_qubits
+        self._meas_clbits = meas_clbits if meas_clbits is not None else self._meas_qubits
 
     def circuits(self) -> List[QuantumCircuit]:
         """Return a list of experiment circuits."""
@@ -49,8 +49,8 @@ class TomographyGenerator(Generator):
 class StateTomographyExperiment(Experiment):
     # pylint: disable=arguments-differ
     def __init__(self,
-                 qubits: Union[int, List[int]],
                  circuit: QuantumCircuit,
+                 qubits: Union[int, List[int]] = None,
                  meas_basis: Union[TomographyBasis, str] = 'Pauli',
                  meas_labels: Union[str, Tuple[str], List[Tuple[str]]] = 'Pauli',
                  method: str = 'auto',
@@ -59,7 +59,7 @@ class StateTomographyExperiment(Experiment):
         analysis = TomographyAnalysis(method=method,
                                       meas_basis=meas_basis,
                                       )
-        generator = StateTomographyGenerator(qubits, circuit,
+        generator = StateTomographyGenerator(circuit, qubits,
                                              meas_basis=meas_basis,
                                              meas_labels=meas_labels
                                              )
@@ -69,8 +69,8 @@ class StateTomographyExperiment(Experiment):
 class ProcessTomographyExperiment(Experiment):
     # pylint: disable=arguments-differ
     def __init__(self,
-                 qubits: Union[int, List[int]],
                  circuit: QuantumCircuit,
+                 qubits: Union[int, List[int]] = None,
                  meas_basis: Union[TomographyBasis, str] = 'Pauli',
                  meas_labels: Union[str, Tuple[str], List[Tuple[str]]] = 'Pauli',
                  prep_basis: Union[TomographyBasis, str] = 'Pauli',
@@ -82,7 +82,7 @@ class ProcessTomographyExperiment(Experiment):
                                       meas_basis=meas_basis,
                                       prep_basis=prep_basis
                                       )
-        generator = ProcessTomographyGenerator(qubits, circuit,
+        generator = ProcessTomographyGenerator(circuit, qubits,
                                                meas_basis=meas_basis,
                                                meas_labels=meas_labels,
                                                prep_basis=prep_basis,
@@ -93,14 +93,14 @@ class ProcessTomographyExperiment(Experiment):
 
 class StateTomographyGenerator(TomographyGenerator):
     def __init__(self,
-                 qubits: Union[int, List[int]],
                  circuit: QuantumCircuit,
+                 qubits: Union[int, List[int]] = None,
                  meas_basis: Union[TomographyBasis, str] = 'Pauli',
                  meas_labels: Union[str, Tuple[str], List[Tuple[str]]] = 'Pauli'
                  ):
         super().__init__("state tomography", circuit, qubits)
         self._circuits = state_tomography_circuits(circuit,
-                                                   qubits,
+                                                   self._meas_qubits,
                                                    meas_basis=meas_basis,
                                                    meas_labels=meas_labels
                                                    )
@@ -114,8 +114,8 @@ class StateTomographyGenerator(TomographyGenerator):
 
 class ProcessTomographyGenerator(TomographyGenerator):
     def __init__(self,
-                 qubits: Union[int, List[int]],
                  circuit: QuantumCircuit,
+                 qubits: Union[int, List[int]] = None,
                  meas_basis: Union[TomographyBasis, str] = 'Pauli',
                  meas_labels: Union[str, Tuple[str], List[Tuple[str]]] = 'Pauli',
                  prep_basis: Union[TomographyBasis, str] = 'Pauli',
@@ -123,7 +123,7 @@ class ProcessTomographyGenerator(TomographyGenerator):
                  ):
         super().__init__("process tomography", qubits, circuit)
         self._circuits = process_tomography_circuits(circuit,
-                                                     qubits,
+                                                     self._meas_qubits,
                                                      meas_basis=meas_basis,
                                                      meas_labels=meas_labels,
                                                      prep_basis=prep_basis,
