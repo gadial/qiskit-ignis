@@ -121,7 +121,7 @@ class ProcessTomographyGenerator(TomographyGenerator):
                  prep_basis: Union[TomographyBasis, str] = 'Pauli',
                  prep_labels: Union[str, Tuple[str], List[Tuple[str]]] = 'Pauli',
                  ):
-        super().__init__("process tomography", qubits, circuit)
+        super().__init__("process tomography", circuit, qubits)
         self._circuits = process_tomography_circuits(circuit,
                                                      self._meas_qubits,
                                                      meas_basis=meas_basis,
@@ -137,31 +137,3 @@ class ProcessTomographyGenerator(TomographyGenerator):
             metadata['prep_label'] = circuit_labels[0]
             metadata['meas_label'] = circuit_labels[1]
         return metadata_list
-
-backend = Aer.get_backend('qasm_simulator')
-bell = QuantumCircuit(2)
-bell.h(0)
-bell.cx(0, 1)
-# bell.measure(1,1)
-
-qst = state_tomography_circuits(bell, [0])
-job = execute(qst, Aer.get_backend('qasm_simulator'))
-tomo_fit = StateTomographyFitter(job.result(), qst)
-rho_old = tomo_fit.fit()
-print(np.round(rho_old, decimals=2))
-
-# exp = StateTomographyExperiment([0], bell)
-# rho_new = exp.run(backend)
-# print(np.round(rho_new, decimals=2))
-
-
-# qst = process_tomography_circuits(bell, [0,1])
-# job = execute(qst, Aer.get_backend('qasm_simulator'))
-# tomo_fit = ProcessTomographyFitter(job.result(), qst)
-# choi_old = tomo_fit.fit()
-#
-# exp = ProcessTomographyExperiment([0,1], bell)
-# choi_new = exp.run(backend)
-# print(choi_old)
-# print(choi_new)
-
