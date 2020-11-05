@@ -1,6 +1,4 @@
 import unittest
-import sys
-sys.path = [sys.path[-1]] + sys.path
 from qiskit import Aer
 from qiskit import QuantumCircuit
 from experiment import StateTomographyExperiment, ProcessTomographyExperiment
