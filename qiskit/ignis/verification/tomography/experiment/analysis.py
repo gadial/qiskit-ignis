@@ -20,8 +20,8 @@ class TomographyAnalysis(Analysis):
                  method: str = 'auto',
                  name: Optional[str] = None,
                  exp_id: Optional[str] = None):
-        super().__init__(data, metadata,name,exp_id)
-        self.method = method
+        super().__init__(data, metadata, name, exp_id)
+        self._method = method
 
         meas_basis = default_basis(meas_basis)
         if isinstance(meas_basis, TomographyBasis):
@@ -36,14 +36,32 @@ class TomographyAnalysis(Analysis):
         self.prep_matrix_func = prep_basis.preparation_matrix
 
         self._analysis_fn = self.fit
+        self._target_qubits = None
+
+    def set_target_qubits(self, qubits: List[int]):
+        self._target_qubits = qubits
+
+    def _set_target_meta(self, metadata: Dict[str, any]):
+        # restrict meas_qubits, meas_clbits and meas_label to the target qubits
+        target_qubits = self._target_qubits
+        meas_qubits = metadata['meas_qubits']
+        if any([qubit not in meas_qubits for qubit in target_qubits]):
+            raise RuntimeError("Target qubit set {} "
+                               "not contained in measurement "
+                               "qubit set {}".format(target_qubits, meas_qubits))
+        qubit_indices = [meas_qubits.index(qubit) for qubit in target_qubits]
+        metadata['meas_qubits'] = [metadata['meas_qubits'][i] for i in qubit_indices]
+        metadata['meas_clbits'] = [metadata['meas_clbits'][i] for i in qubit_indices]
+        metadata['meas_label'] = [metadata['meas_label'][i] for i in qubit_indices]
 
     def _format_data(self, data: Result,
                      metadata: Dict[str, any],
                      index: int) -> Counts:
+        if self._target_qubits is not None:
+            self._set_target_meta(metadata)
         meas_qubits = metadata['meas_qubits']
         counts = data.get_counts(index)
-        if metadata['marginalize']:
-            counts = marginal_counts(counts, meas_qubits)
+        counts = marginal_counts(counts, meas_qubits)
         counts = [counts.get(key, 0) for key in count_keys(len(meas_qubits))]
         return counts
 
@@ -56,7 +74,7 @@ class TomographyAnalysis(Analysis):
             trace_preserving: bool = False,
             **kwargs) -> np.array:
         if method is None:
-            method = self.method
+            method = self._method
 
         data, basis_matrix, weights = _fitter_data(
             counts=data,

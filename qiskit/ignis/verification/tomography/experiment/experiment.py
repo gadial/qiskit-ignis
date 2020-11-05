@@ -1,10 +1,10 @@
-from qiskit.ignis.experiments.base import Generator
-from qiskit.ignis.experiments.base import Experiment
+from qiskit.ignis.experiments.base import Experiment, Analysis, Generator
 from qiskit import QuantumCircuit
 from qiskit.ignis.verification.tomography.basis import state_tomography_circuits
 from qiskit.ignis.verification.tomography.basis import process_tomography_circuits
-from qiskit.ignis.verification.tomography.basis import TomographyBasis, default_basis
+from qiskit.providers import BaseJob
 from ast import literal_eval
+
 
 from typing import List, Dict, Union, Optional, Tuple
 from analysis import TomographyAnalysis
@@ -30,15 +30,24 @@ class TomographyGenerator(Generator):
         """Generate a list of experiment metadata dicts."""
         return [{
             'circuit_name': circ.name,
-            'marginalize': circ.cregs != 1,
             'meas_qubits': self._meas_qubits,
             'prep_qubits': self._prep_qubits,
             'meas_clbits': self._meas_clbits
         }
             for circ in self._circuits]
 
+class TomographyExperiment(Experiment):
+    def __init__(self,
+                 generator: Optional[Generator] = None,
+                 analysis: Optional[Analysis] = None,
+                 job: Optional[BaseJob] = None):
+        super().__init__(generator=generator, analysis=analysis, job=job)
 
-class StateTomographyExperiment(Experiment):
+    def set_target_qubits(self, qubits: List[int]):
+        self.analysis.set_target_qubits(qubits)
+        return self
+
+class StateTomographyExperiment(TomographyExperiment):
     # pylint: disable=arguments-differ
     def __init__(self,
                  circuit: QuantumCircuit,
@@ -58,7 +67,7 @@ class StateTomographyExperiment(Experiment):
 
         super().__init__(generator=generator, analysis=analysis, job=job)
 
-class ProcessTomographyExperiment(Experiment):
+class ProcessTomographyExperiment(TomographyExperiment):
     # pylint: disable=arguments-differ
     def __init__(self,
                  circuit: QuantumCircuit,
